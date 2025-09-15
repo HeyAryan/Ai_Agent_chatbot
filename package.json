@@ -1,0 +1,21 @@
+{
+  "name": "ai_agent_chatbot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "http-errors": "^2.0.0",
+    "morgan": "^1.10.1",
+    "nodemon": "^3.1.10"
+  }
+}
