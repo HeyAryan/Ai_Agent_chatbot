@@ -8,6 +8,13 @@ const config = Object.freeze({
 	mongo: {
 		uri: process.env.MONGO_URI || '',
 		maxPoolSize: Number(process.env.MONGO_MAX_POOL_SIZE || 10)
+	},
+	jwt: {
+		secret: process.env.JWT_SECRET || 'dev-secret',
+		expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+	},
+	google: {
+		clientId: process.env.GOOGLE_CLIENT_ID || ''
 	}
 });
 
