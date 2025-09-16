@@ -24,8 +24,13 @@ async function postGoogleSignIn(req, res, next) {
 	}
 }
 
+async function postLogout(req, res) {
+	return res.status(200).json({ success: true });
+}
+
 module.exports = {
-	postGoogleSignIn
+	postGoogleSignIn,
+	postLogout
 };
 
 

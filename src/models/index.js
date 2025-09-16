@@ -3,7 +3,9 @@ module.exports = {
 	Agent: require('./Agent'),
 	Conversation: require('./Conversation'),
 	Message: require('./Message'),
-	Plan: require('./Plan')
+	Plan: require('./Plan'),
+	Notification: require('./Notification'),
+	SupportTicket: require('./SupportTicket')
 };
 
 

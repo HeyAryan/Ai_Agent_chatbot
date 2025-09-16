@@ -5,7 +5,8 @@ const conversationSchema = new mongoose.Schema({
 	agentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Agent', required: true },
 	title: { type: String },
 	lastMessage: { type: String },
-	unreadCount: { type: Number, default: 0 }
+	unreadCount: { type: Number, default: 0 },
+	pinned: { type: Boolean, default: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Conversation', conversationSchema);
