@@ -38,7 +38,7 @@ async function deleteAssistant(req, res, next) {
 	try {
 		const deleted = await Agent.findByIdAndDelete(req.params.id).lean().exec();
 		if (!deleted) return res.status(404).json({ message: 'Not found' });
-		return res.status(204).send("Deleted successfully");
+		return res.status(200).send("Deleted successfully");
 	} catch (err) { return next(err); }
 }
 
