@@ -3,6 +3,7 @@ dotenv.config();
 
 const http = require('http');
 const app = require('./app');
+const { setupRealtime } = require('./services/realtime');
 const { connectToDatabase, disconnectFromDatabase } = require('./db/mongoose');
 
 const PORT = process.env.PORT || 3000;
@@ -12,7 +13,9 @@ const server = http.createServer(app);
 async function start() {
 	try {
 		await connectToDatabase();
-		server.listen(PORT, () => {
+        // setup websocket
+        setupRealtime(server);
+        server.listen(PORT, () => {
 			console.log(`[server] listening on port ${PORT}`);
 		});
 	} catch (err) {
