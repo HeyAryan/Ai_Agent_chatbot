@@ -1,0 +1,42 @@
+<div class="chat-wrapper">
+  <header class="chat-header">
+    <div class="avatar teacher">T</div>
+    <div class="titles">
+      <h2>Teacher AI</h2>
+      <p>Your personal learning guide</p>
+    </div>
+  </header>
+
+  <div class="chat-scroll">
+    <div class="chat" role="log" aria-live="polite">
+      <div *ngFor="let msg of messages" class="row" [class.user]="msg.role==='user'" [class.teacher]="msg.role==='teacher'">
+        <div class="bubble">
+          <div class="name" *ngIf="msg.role==='teacher'">Teacher</div>
+          <div class="text">{{ msg.text }}</div>
+        </div>
+      </div>
+
+      <div class="row teacher" *ngIf="thinking">
+        <div class="bubble thinking">
+          <div class="name">Teacher</div>
+          <div class="dots" aria-label="Teacher is thinking" role="status">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="hint">Formulating an explanation...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <form class="composer" (ngSubmit)="sendMessage()">
+    <input
+      type="text"
+      placeholder="Ask your question..."
+      [(ngModel)]="inputText"
+      name="message"
+      [disabled]="thinking"
+      autocomplete="off"
+    />
+    <button type="submit" [disabled]="!inputText?.trim() || thinking">Send</button>
+  </form>
+</div>

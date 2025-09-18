@@ -1,1 +1,4 @@
-/* You can add global styles to this file, and also import other style files */
+/* Global resets and layout for full-height app */
+html, body { height: 100%; }
+body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+app-root, app-home { display: block; height: 100%; }
