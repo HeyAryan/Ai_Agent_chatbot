@@ -8,7 +8,7 @@ async function listAssistants(req, res, next) {
 		if (tag) filter.tags = tag;
 		const assistants = await Agent.find(filter).sort({ createdAt: -1 }).lean().exec();
 		return res.json({ success: true, data: assistants });
-	} catch (err) { console.log(err) ;return next(err); }
+	} catch (err) { console.error(err) ;return next(err); }
 }
 
 async function getAssistant(req, res, next) {
