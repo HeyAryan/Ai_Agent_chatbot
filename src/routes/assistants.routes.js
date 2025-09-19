@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.get('/', listAssistants);
 router.get('/:id', getAssistant);
-router.post('/', auth, requireAdmin, createAssistant);
+router.post('/', createAssistant);
 router.put('/:id', auth, requireAdmin, updateAssistant);
 router.delete('/:id', auth, requireAdmin, deleteAssistant);
 
