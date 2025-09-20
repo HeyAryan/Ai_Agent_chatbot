@@ -103,8 +103,6 @@ async function getUserDetailsFromSession(req, res, next) {
 				profileImage: user.profileImage,
 				membershipPlan: user.membershipPlan,
 				bio: user.bio,
-				settings: user.settings,
-				notificationSettings: user.notificationSettings,
 				createdAt: user.createdAt,
 				updatedAt: user.updatedAt
 			};
