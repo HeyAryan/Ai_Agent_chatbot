@@ -25,22 +25,7 @@ async function getConnectionId(req, res) {
 		return res.json({
 			success: true,
 			data: {
-				websocketUrl,
-				connectionInfo: {
-					protocol: protocol === 'https' ? 'wss' : 'ws',
-					host,
-					port: req.get('host').split(':')[1] || (protocol === 'https' ? '443' : '80'),
-					timestamp: new Date().toISOString()
-				},
-				instructions: {
-					authentication: 'Include JWT token in auth.token or Authorization header',
-					events: [
-						'notification:get → notification:receive',
-						'connection:get → connection:receive', 
-						'conversation:get → conversation:receive',
-						'message:send → message:receive'
-					]
-				}
+				websocketUrl
 			}
 		});
 	} catch (error) {
