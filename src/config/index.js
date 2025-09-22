@@ -15,6 +15,10 @@ const config = Object.freeze({
 	},
 	google: {
 		clientId: process.env.GOOGLE_CLIENT_ID || ''
+	},
+	openai: {
+		assistantId: process.env.OPENAI_ASSISTANT_ID || '',
+		model: process.env.OPENAI_MODEL || 'gpt-4o-mini'
 	}
 });
 

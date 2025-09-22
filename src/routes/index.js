@@ -3,6 +3,7 @@ const healthRoutes = require('./health.routes');
 const authRoutes = require('./auth.routes');
 const agentsRoutes = require('./agents.routes');
 const assistantsRoutes = require('./assistants.routes');
+const assistantRoutes = require('./assistant.routes');
 const chatsRoutes = require('./chats.routes');
 const notificationsRoutes = require('./notifications.routes');
 const subscriptionRoutes = require('./subscription.routes');
