@@ -20,8 +20,8 @@ const config = Object.freeze({
 		clientId: process.env.GOOGLE_CLIENT_ID || ''
 	},
 	razorpay: {
-		keyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_LulbryWU8UwbB4',
-		keySecret: process.env.RAZORPAY_KEY_SECRET || 'OJ51AJqfCsch2As73tXguJSZ'
+		keyId: process.env.RAZORPAY_KEY_ID,
+		keySecret: process.env.RAZORPAY_KEY_SECRET
 	}
 });
 

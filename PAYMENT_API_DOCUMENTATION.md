@@ -18,7 +18,7 @@ The payment system provides multiple ways for users to subscribe to different pl
 Add these to your `.env` file:
 
 ```env
-RAZORPAY_KEY_ID=rzp_test_LulbryWU8UwbB4
+RAZORPAY_KEY_ID=dasdas
 RAZORPAY_KEY_SECRET=your_razorpay_secret_key
 ```
 
