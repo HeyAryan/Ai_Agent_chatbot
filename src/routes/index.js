@@ -21,6 +21,7 @@ router.get('/', (req, res) => {
 router.use('/health', healthRoutes);
 router.use('/auth', authRoutes);
 router.use('/agents', agentsRoutes);
+router.use('/assistant', assistantRoutes);
 router.use('/assistants', assistantsRoutes);
 router.use('/chats', chatsRoutes);
 router.use('/notifications', notificationsRoutes);
