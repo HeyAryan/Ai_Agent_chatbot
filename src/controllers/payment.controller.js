@@ -8,11 +8,17 @@ const { Plan } = require('../models');
  */
 async function createOrder(req, res, next) {
 	try {
-		const { planId, amount, currency = 'INR', notes = {} } = req.body;
+		const { planName, amount, currency = 'INR' } = req.body;
 		const userId = req.user?.id || req.body.userId || null; // Optional user ID
 
-		if (!planId || !amount) {
-			throw createError(400, 'Plan ID and amount are required');
+		if (!planName || !amount) {
+			throw createError(400, 'Plan name and amount are required');
+		}
+
+		// Find plan by name
+		const plan = await Plan.findOne({ plan: planName });
+		if (!plan) {
+			throw createError(404, `Plan '${planName}' not found. Available plans: Pro, Premium`);
 		}
 
 		// Validate amount (convert to paise for Razorpay)
@@ -23,10 +29,9 @@ async function createOrder(req, res, next) {
 
 		const result = await paymentService.createOrder({
 			userId,
-			planId,
+			planId: plan._id,
 			amount: amountInPaise,
-			currency,
-			notes
+			currency
 		});
 
 		return res.status(201).json({

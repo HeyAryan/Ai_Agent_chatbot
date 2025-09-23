@@ -79,7 +79,7 @@
                             ${plan.features.map(feature => `<li>${feature}</li>`).join('')}
                         </ul>
                     </div>
-                    <button onclick="testPayment('${plan._id}', ${plan.amount})">
+                    <button onclick="testPayment('${plan.plan}', ${plan.amount})">
                         💳 Pay Now - ₹${plan.amount}
                     </button>
                 `;
@@ -88,12 +88,12 @@
         }
 
         // Test payment flow
-        async function testPayment(planId, amount) {
+        async function testPayment(planName, amount) {
             try {
-                showStatus(`Initiating payment for plan ${planId}...`, 'info');
+                showStatus(`Initiating payment for plan ${planName}...`, 'info');
                 
                 // Method 1: Direct checkout redirect (Recommended)
-                window.location.href = `${API_BASE}/payments/checkout/${planId}`;
+                window.location.href = `${API_BASE}/payments/checkout/${planName}`;
                 
             } catch (error) {
                 showStatus(`Payment error: ${error.message}`, 'error');
@@ -101,7 +101,7 @@
         }
 
         // Alternative: API-based payment (requires authentication)
-        async function testPaymentAPI(planId, amount) {
+        async function testPaymentAPI(planName, amount) {
             try {
                 showStatus('Creating payment order...', 'info');
                 
@@ -112,7 +112,7 @@
                         'Authorization': `Bearer ${authToken}` // You'll need to implement auth
                     },
                     body: JSON.stringify({
-                        planId: planId,
+                        planName: planName,
                         amount: amount,
                         currency: 'INR'
                     })
