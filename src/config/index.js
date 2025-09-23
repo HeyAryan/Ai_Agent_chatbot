@@ -5,6 +5,9 @@ const config = Object.freeze({
 	nodeEnv: process.env.NODE_ENV || 'development',
 	port: Number(process.env.PORT || 3000),
 	appName: process.env.APP_NAME || 'ai_agent_chatbot',
+	app: {
+		baseUrl: process.env.APP_BASE_URL || 'http://localhost:3000'
+	},
 	mongo: {
 		uri: process.env.MONGO_URI || '',
 		maxPoolSize: Number(process.env.MONGO_MAX_POOL_SIZE || 10)
@@ -19,6 +22,9 @@ const config = Object.freeze({
 	openai: {
 		assistantId: process.env.OPENAI_ASSISTANT_ID || '',
 		model: process.env.OPENAI_MODEL || 'gpt-4o-mini'
+	razorpay: {
+		keyId: process.env.RAZORPAY_KEY_ID,
+		keySecret: process.env.RAZORPAY_KEY_SECRET
 	}
 });
 
