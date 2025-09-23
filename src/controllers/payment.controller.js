@@ -8,11 +8,17 @@ const { Plan } = require('../models');
  */
 async function createOrder(req, res, next) {
 	try {
-		const { planId, amount, currency = 'INR', notes = {} } = req.body;
+		const { planName, amount, currency = 'INR' } = req.body;
 		const userId = req.user?.id || req.body.userId || null; // Optional user ID
 
-		if (!planId || !amount) {
-			throw createError(400, 'Plan ID and amount are required');
+		if (!planName || !amount) {
+			throw createError(400, 'Plan name and amount are required');
+		}
+
+		// Find plan by name
+		const plan = await Plan.findOne({ plan: planName });
+		if (!plan) {
+			throw createError(404, `Plan '${planName}' not found. Available plans: Pro, Premium`);
 		}
 
 		// Validate amount (convert to paise for Razorpay)
@@ -23,10 +29,9 @@ async function createOrder(req, res, next) {
 
 		const result = await paymentService.createOrder({
 			userId,
-			planId,
+			planId: plan._id,
 			amount: amountInPaise,
-			currency,
-			notes
+			currency
 		});
 
 		return res.status(201).json({
@@ -58,18 +63,34 @@ async function verifyPayment(req, res, next) {
 			throw createError(400, 'Order ID, Payment ID, and Signature are required');
 		}
 
-		const payment = await paymentService.verifyPayment(orderId, paymentId, signature);
+		const result = await paymentService.verifyPayment(orderId, paymentId, signature);
+		const { payment, updatedUser } = result;
+
+		const responseData = {
+			paymentId: payment._id,
+			status: payment.status,
+			amount: payment.amount,
+			currency: payment.currency,
+			planId: payment.planId
+		};
+
+		// Include updated user data if user was updated
+		if (updatedUser) {
+			responseData.user = {
+				id: updatedUser._id,
+				email: updatedUser.email,
+				name: updatedUser.name,
+				membershipPlan: updatedUser.membershipPlan,
+				planExpiryDate: updatedUser.planExpiryDate,
+				profileImage: updatedUser.profileImage,
+				bio: updatedUser.bio
+			};
+		}
 
 		return res.status(200).json({
 			success: true,
 			message: 'Payment verified successfully',
-			data: {
-				paymentId: payment._id,
-				status: payment.status,
-				amount: payment.amount,
-				currency: payment.currency,
-				planId: payment.planId
-			}
+			data: responseData
 		});
 	} catch (err) {
 		return next(err);

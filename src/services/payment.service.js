@@ -114,13 +114,30 @@ async function verifyPayment(razorpayOrderId, razorpayPaymentId, razorpaySignatu
 
 		// Update user's membership plan (only if user exists)
 		const plan = await Plan.findById(payment.planId);
+		let updatedUser = null;
+		
 		if (plan && payment.userId) {
-			await User.findByIdAndUpdate(payment.userId, {
-				membershipPlan: plan.plan
-			});
+			// Calculate plan expiry date based on billing cycle
+			const now = new Date();
+			let planExpiryDate;
+			
+			if (plan.billingCycle === 'yearly') {
+				planExpiryDate = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
+			} else { // monthly
+				planExpiryDate = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+			}
+
+			updatedUser = await User.findByIdAndUpdate(
+				payment.userId, 
+				{
+					membershipPlan: plan.plan,
+					planExpiryDate: planExpiryDate
+				},
+				{ new: true }
+			).lean();
 		}
 
-		return payment;
+		return { payment, updatedUser };
 	} catch (error) {
 		if (error.status) throw error;
 		throw createError(500, `Payment verification failed: ${error.message}`);
