@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema({
 	role: { type: String, enum: ['user', 'admin'], default: 'user' },
 	profileImage: { type: String },
 	membershipPlan: { type: String },
+	planExpiryDate: { type: Date },
 	bio: { type: String },
 	settings: {
 		theme: { type: String, enum: ['light', 'dark', 'system'], default: 'system' },
