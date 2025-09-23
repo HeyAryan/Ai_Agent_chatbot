@@ -22,6 +22,7 @@ const config = Object.freeze({
 	openai: {
 		assistantId: process.env.OPENAI_ASSISTANT_ID || '',
 		model: process.env.OPENAI_MODEL || 'gpt-4o-mini'
+	},
 	razorpay: {
 		keyId: process.env.RAZORPAY_KEY_ID,
 		keySecret: process.env.RAZORPAY_KEY_SECRET

@@ -4,10 +4,15 @@ dotenv.config();
 const http = require('http');
 const app = require('./app');
 const { connectToDatabase, disconnectFromDatabase } = require('./db/mongoose');
+const socketManager = require('./socket/socketManager');
 
 const PORT = process.env.PORT || 3000;
 
 const server = http.createServer(app);
+
+// Initialize Socket.IO
+socketManager.initialize(server);
+
 
 async function start() {
 	try {
