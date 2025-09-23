@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Razorpay Payment Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .plan-card { border: 1px solid #ddd; padding: 20px; margin: 10px 0; border-radius: 8px; }
+        .plan-card h3 { color: #333; margin-top: 0; }
+        .plan-card .price { font-size: 24px; font-weight: bold; color: #007bff; }
+        .plan-card .features { margin: 10px 0; }
+        .plan-card .features li { margin: 5px 0; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .test-info { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .test-cards { background: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .error { color: red; margin: 10px 0; }
+        .success { color: green; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Razorpay Payment Integration Test</h1>
+    
+    <div class="test-info">
+        <h3>📋 Test Instructions</h3>
+        <p>1. Click "Load Plans" to fetch available subscription plans</p>
+        <p>2. Click "Pay Now" on any plan to test payment</p>
+        <p>3. Use the test card numbers below for testing</p>
+    </div>
+
+    <div class="test-cards">
+        <h4>💳 Test Card Numbers</h4>
+        <p><strong>Success:</strong> 4111 1111 1111 1111</p>
+        <p><strong>Failure:</strong> 4000 0000 0000 0002</p>
+        <p><strong>CVV:</strong> Any 3 digits (e.g., 123)</p>
+        <p><strong>Expiry:</strong> Any future date (e.g., 12/25)</p>
+    </div>
+
+    <button onclick="loadPlans()">🔄 Load Plans</button>
+    <div id="plans-container"></div>
+    <div id="status"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000';
+        let authToken = null;
+
+        // Load available plans
+        async function loadPlans() {
+            try {
+                showStatus('Loading plans...', 'info');
+                const response = await fetch(`${API_BASE}/payments/plans`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayPlans(result.data);
+                    showStatus('Plans loaded successfully!', 'success');
+                } else {
+                    showStatus('Failed to load plans', 'error');
+                }
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Display plans in cards
+        function displayPlans(plans) {
+            const container = document.getElementById('plans-container');
+            container.innerHTML = '';
+            
+            plans.forEach(plan => {
+                const planCard = document.createElement('div');
+                planCard.className = 'plan-card';
+                planCard.innerHTML = `
+                    <h3>${plan.plan}</h3>
+                    <div class="price">₹${plan.amount}/${plan.billingCycle}</div>
+                    <div class="features">
+                        <ul>
+                            ${plan.features.map(feature => `<li>${feature}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <button onclick="testPayment('${plan._id}', ${plan.amount})">
+                        💳 Pay Now - ₹${plan.amount}
+                    </button>
+                `;
+                container.appendChild(planCard);
+            });
+        }
+
+        // Test payment flow
+        async function testPayment(planId, amount) {
+            try {
+                showStatus(`Initiating payment for plan ${planId}...`, 'info');
+                
+                // Method 1: Direct checkout redirect (Recommended)
+                window.location.href = `${API_BASE}/payments/checkout/${planId}`;
+                
+            } catch (error) {
+                showStatus(`Payment error: ${error.message}`, 'error');
+            }
+        }
+
+        // Alternative: API-based payment (requires authentication)
+        async function testPaymentAPI(planId, amount) {
+            try {
+                showStatus('Creating payment order...', 'info');
+                
+                const response = await fetch(`${API_BASE}/payments/create-order`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}` // You'll need to implement auth
+                    },
+                    body: JSON.stringify({
+                        planId: planId,
+                        amount: amount,
+                        currency: 'INR'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus('Order created! Redirecting to payment...', 'success');
+                    // Redirect to Razorpay checkout
+                    window.location.href = result.data.checkoutUrl;
+                } else {
+                    showStatus(`Order creation failed: ${result.error?.message}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`API Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Show status messages
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        // Load plans on page load
+        window.onload = function() {
+            loadPlans();
+        };
+    </script>
+</body>
+</html>
