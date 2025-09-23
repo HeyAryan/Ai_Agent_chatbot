@@ -1,4 +1,5 @@
 const { User } = require('../models');
+const crypto = require("crypto");
 
 async function getMe(req, res, next) {
 	try {
@@ -32,6 +33,14 @@ async function deleteMe(req, res, next) {
 	} catch (err) { return next(err); }
 }
 
-module.exports = { getMe, updateMe, updateSettings, deleteMe };
+async function getOrCreateConnectionId(req, res, next) {
+	console.log("Generating new connection ID");
+	try {
+		const connectionId = crypto.randomUUID();
+		return res.json({ success: true, data: { connectionId } });
+	} catch (err) { return next(err); }
+}
+
+module.exports = { getMe, updateMe, updateSettings, deleteMe, getOrCreateConnectionId };
 
 
