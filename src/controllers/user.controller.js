@@ -9,7 +9,9 @@ async function getMe(req, res, next) {
 
 async function updateMe(req, res, next) {
 	try {
-		const updates = (({ name, profileImage, bio }) => ({ name, profileImage, bio }))(req.body);
+		const updates = (({ name, profileImage, bio, membershipPlan, planExpiryDate }) => ({ 
+			name, profileImage, bio, membershipPlan, planExpiryDate 
+		}))(req.body);
 		const user = await User.findByIdAndUpdate(req.user.id, updates, { new: true }).lean().exec();
 		return res.json({ success: true, data: user });
 	} catch (err) { return next(err); }
