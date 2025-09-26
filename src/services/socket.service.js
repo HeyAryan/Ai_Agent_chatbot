@@ -41,7 +41,7 @@ class SocketService {
       
       // Create run
       const run = await client.beta.threads.runs.create(threadId, {
-        assistant_id: process.env.ASTROLOGER_ASSISTANT_ID
+        assistant_id: data.assistantId
       });
       console.log("Run created:", run.id);
       

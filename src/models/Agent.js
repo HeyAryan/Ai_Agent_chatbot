@@ -10,6 +10,7 @@ const agentSchema = new mongoose.Schema({
 	liveOn: { type: Date },
 	icon: { type: String },
 	color: { type: String },
+	agentId: { type: String, required: true, unique: true },
 	featured: { type: Boolean, default: false }
 }, { timestamps: true });
 
