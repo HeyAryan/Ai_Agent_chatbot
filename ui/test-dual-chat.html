@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dual Chat Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Dual Chat WebSocket Test</h1>
+        <p>This page tests the dual chat functionality with both ASTROLOGER_01 and FORMAL_CONTENT_WRITER agents.</p>
+        
+        <div class="test-section">
+            <h3>Connection Test</h3>
+            <button class="test-button" onclick="testConnection()">Test Connection</button>
+            <button class="test-button" onclick="disconnect()">Disconnect</button>
+            <div id="connectionStatus" class="status info">Not connected</div>
+        </div>
+
+        <div class="test-section">
+            <h3>Astrologer Chat Test</h3>
+            <input type="text" id="astrologerInput" placeholder="Ask the astrologer..." style="width: 300px; padding: 8px;">
+            <button class="test-button" onclick="sendAstrologerMessage()">Send to Astrologer</button>
+            <div id="astrologerStatus" class="status info">Ready</div>
+        </div>
+
+        <div class="test-section">
+            <h3>Content Writer Chat Test</h3>
+            <input type="text" id="contentWriterInput" placeholder="Ask the content writer..." style="width: 300px; padding: 8px;">
+            <button class="test-button" onclick="sendContentWriterMessage()">Send to Content Writer</button>
+            <div id="contentWriterStatus" class="status info">Ready</div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test Log</h3>
+            <div id="testLog" class="log"></div>
+            <button class="test-button" onclick="clearLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let socket = null;
+        let connectionId = null;
+        let threadIds = {
+            astrologer: null,
+            contentWriter: null
+        };
+
+        function log(message) {
+            const logDiv = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+
+        async function testConnection() {
+            try {
+                log('Testing connection...');
+                
+                // Get connection ID
+                const response = await fetch('http://localhost:3000/user/connection-id');
+                const data = await response.json();
+                connectionId = data.data?.connectionId || data.connectionId;
+                
+                if (!connectionId) {
+                    throw new Error('No connection ID received');
+                }
+                
+                log(`Connection ID: ${connectionId}`);
+                
+                // Connect WebSocket
+                socket = io('http://localhost:3000', { transports: ['websocket'] });
+                
+                socket.on('connect', () => {
+                    log('WebSocket connected');
+                    updateStatus('connectionStatus', 'Connected', 'success');
+                    socket.emit('register', connectionId);
+                });
+                
+                socket.on('registered', (data) => {
+                    log(`Registered: ${JSON.stringify(data)}`);
+                });
+                
+                socket.on('disconnect', () => {
+                    log('WebSocket disconnected');
+                    updateStatus('connectionStatus', 'Disconnected', 'error');
+                });
+                
+                socket.on('messageResponse', (data) => {
+                    log(`Message response: ${JSON.stringify(data)}`);
+                    
+                    // Update thread ID for the specific agent
+                    if (data.agentId === 'ASTROLOGER_01') {
+                        threadIds.astrologer = data.threadId;
+                        updateStatus('astrologerStatus', `Astrologer: ${data.message}`, 'success');
+                        log(`Astrologer thread ID: ${data.threadId}`);
+                    } else if (data.agentId === 'FORMAL_CONTENT_WRITER') {
+                        threadIds.contentWriter = data.threadId;
+                        updateStatus('contentWriterStatus', `Content Writer: ${data.message}`, 'success');
+                        log(`Content Writer thread ID: ${data.threadId}`);
+                    }
+                });
+                
+                socket.on('connect_error', (error) => {
+                    log(`Connection error: ${error.message}`);
+                    updateStatus('connectionStatus', `Error: ${error.message}`, 'error');
+                });
+                
+            } catch (error) {
+                log(`Connection test failed: ${error.message}`);
+                updateStatus('connectionStatus', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                connectionId = null;
+                threadIds = {
+                    astrologer: null,
+                    contentWriter: null
+                };
+                updateStatus('connectionStatus', 'Disconnected', 'info');
+                log('Disconnected from WebSocket');
+            }
+        }
+
+        function sendAstrologerMessage() {
+            if (!socket || !connectionId) {
+                alert('Please connect first');
+                return;
+            }
+            
+            const input = document.getElementById('astrologerInput');
+            const message = input.value.trim();
+            
+            if (!message) {
+                alert('Please enter a message');
+                return;
+            }
+            
+            const payload = {
+                message: message,
+                agentId: 'ASTROLOGER_01',
+                userId: 'test-user-123',
+                threadId: threadIds.astrologer
+            };
+            
+            log(`Sending to Astrologer: ${message}`);
+            updateStatus('astrologerStatus', 'Sending...', 'info');
+            socket.emit('message', payload);
+            input.value = '';
+        }
+
+        function sendContentWriterMessage() {
+            if (!socket || !connectionId) {
+                alert('Please connect first');
+                return;
+            }
+            
+            const input = document.getElementById('contentWriterInput');
+            const message = input.value.trim();
+            
+            if (!message) {
+                alert('Please enter a message');
+                return;
+            }
+            
+            const payload = {
+                message: message,
+                agentId: 'FORMAL_CONTENT_WRITER',
+                userId: 'test-user-123',
+                threadId: threadIds.contentWriter
+            };
+            
+            log(`Sending to Content Writer: ${message}`);
+            updateStatus('contentWriterStatus', 'Sending...', 'info');
+            socket.emit('message', payload);
+            input.value = '';
+        }
+
+        function clearLog() {
+            document.getElementById('testLog').innerHTML = '';
+        }
+
+        // Auto-connect on page load
+        window.addEventListener('load', () => {
+            log('Page loaded, ready to test');
+        });
+    </script>
+</body>
+</html>
