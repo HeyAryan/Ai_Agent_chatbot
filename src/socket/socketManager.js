@@ -95,12 +95,14 @@ class SocketManager {
         return;
       }
 
-      //Get AssisstantDetails
-      console.log("AgentId:", data.agentId);
-      const assistantId = process.env. process.env.ASSISTANTID_ID_MAP.get(data.agentId);
+      //Get Assistant Details
+      console.log("AgentId:", data);
+      // For now, use the agentId directly as assistantId
+      // TODO: Implement proper agent-to-assistant mapping
+      // const assistantId = data.agentId || process.env.OPENAI_ASSISTANT_ID;
       // Process message through service
-      console.log("Found AssistantId:", assistantId);
-      data.assistantId = assistantId;
+      // console.log("Found AssistantId:", assistantId);
+      // data.assistantId = assistantId;
       const response = await socketService.processMessage(data);
       console.log("Sending response:", response);
 

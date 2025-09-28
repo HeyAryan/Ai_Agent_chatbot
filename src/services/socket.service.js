@@ -1,4 +1,4 @@
-const { Message } = require('../models');
+const { Message, Conversation, User, Agent } = require('../models');
 /**
  * Socket service for handling chat-related business logic
  */
@@ -15,6 +15,9 @@ class SocketService {
     try {
       console.log("Processing message:", data.message);
 
+      // Find or create conversation
+      let conversation = await this.findOrCreateConversation(data.userId, data.agentId);
+      
       // OpenAI task integration - simplified approach
       const OpenAI = require('openai');
       const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -24,10 +27,17 @@ class SocketService {
       if(data.threadId){
         console.log("already have threadId:",data.threadId);
         threadId = data.threadId;
-      }else{
+      } else if (conversation.openai_thread_id) {
+        console.log("Using existing thread from conversation:", conversation.openai_thread_id);
+        threadId = conversation.openai_thread_id;
+      } else {
         // Create thread
         const thread = await client.beta.threads.create();
         threadId = thread.id;
+        // Update conversation with thread ID
+        await Conversation.findByIdAndUpdate(conversation._id, { 
+          openai_thread_id: threadId 
+        });
       }
       
       console.log("Thread created:", threadId);
@@ -41,7 +51,7 @@ class SocketService {
       
       // Create run
       const run = await client.beta.threads.runs.create(threadId, {
-        assistant_id: data.assistantId
+        assistant_id: data.agentId
       });
       console.log("Run created:", run.id);
       
@@ -68,17 +78,18 @@ class SocketService {
       
       console.log("OpenAI response received:", aiResponse);
 
+      // Save both user message and AI response to database
+      await this.saveMessages(conversation._id, data.userId, data.agentId, data.message, aiResponse);
+
       const chatMessage = {
         status: "ok",
         message: aiResponse, // ✅ Now using actual AI response
         userId: data.userId,
         agentId: data.agentId,
         threadId: threadId,
+        conversationId: conversation._id,
         serverTime: new Date().toISOString()
       };
-
-      // TODO: Save message to database if needed
-      // await this.saveMessage(data, chatMessage);
 
       return chatMessage;
     } catch (error) {
@@ -120,17 +131,79 @@ class SocketService {
   }
 
   /**
-   * Save message to database
-   * @param {Object} originalData - Original message data
-   * @param {Object} responseData - Response message data
+   * Find or create conversation for user and agent
+   * @param {string} userId - User ID
+   * @param {string} agentId - Agent ID
+   * @returns {Object} Conversation object
    */
-  async saveMessage(originalData, responseData) {
+  async findOrCreateConversation(userId, agentId) {
     try {
-      // TODO: Implement message saving logic
-      // This could save both user message and AI response
-      console.log('Saving message to database:', { originalData, responseData });
+      // Try to find existing active conversation
+      let conversation = await Conversation.findOne({
+        user_id: userId,
+        agent_id: agentId,
+        status: 'active'
+      }).exec();
+
+      if (!conversation) {
+        // Create new conversation
+        conversation = await Conversation.create({
+          user_id: userId,
+          agent_id: agentId,
+          status: 'active'
+        });
+        console.log('Created new conversation:', conversation._id);
+      } else {
+        console.log('Found existing conversation:', conversation._id);
+      }
+
+      return conversation;
     } catch (error) {
-      console.error('Error saving message:', error);
+      console.error('Error finding/creating conversation:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Save both user message and AI response to database
+   * @param {string} conversationId - Conversation ID
+   * @param {string} userId - User ID
+   * @param {string} agentId - Agent ID
+   * @param {string} userMessage - User's message
+   * @param {string} aiResponse - AI's response
+   */
+  async saveMessages(conversationId, userId, agentId, userMessage, aiResponse) {
+    try {
+      // Save user message
+      const userMsg = await Message.create({
+        conversationId: conversationId,
+        sender: 'user',
+        senderId: userId,
+        senderRef: 'User',
+        content: userMessage,
+        status: 'delivered'
+      });
+
+      // Save AI response
+      const aiMsg = await Message.create({
+        conversationId: conversationId,
+        sender: 'agent',
+        senderId: agentId,
+        senderRef: 'Agent',
+        content: aiResponse,
+        status: 'sent'
+      });
+
+      // Update conversation's last activity
+      await Conversation.findByIdAndUpdate(conversationId, {
+        updatedAt: new Date()
+      });
+
+      console.log('Messages saved:', { userMsg: userMsg._id, aiMsg: aiMsg._id });
+      return { userMsg, aiMsg };
+    } catch (error) {
+      console.error('Error saving messages:', error);
+      throw error;
     }
   }
 
