@@ -1,4 +1,6 @@
 const { Message, Conversation, User, Agent } = require('../models');
+const agentMappingService = require('./agentMapping.service');
+
 /**
  * Socket service for handling chat-related business logic
  */
@@ -14,6 +16,10 @@ class SocketService {
   async processMessage(data) {
     try {
       console.log("Processing message:", data.message);
+
+      // Get OpenAI assistant ID from agent mapping service
+      const assistantId = await agentMappingService.getAssistantIdByAgentId(data.agentId);
+      console.log(`Using OpenAI assistant ID: ${assistantId} for agent: ${data.agentId}`);
 
       // Find or create conversation
       let conversation = await this.findOrCreateConversation(data.userId, data.agentId);
@@ -49,9 +55,9 @@ class SocketService {
       });
       console.log("Message added to thread");
       
-      // Create run
+      // Create run using the OpenAI assistant ID from agent
       const run = await client.beta.threads.runs.create(threadId, {
-        assistant_id: data.agentId
+        assistant_id: assistantId
       });
       console.log("Run created:", run.id);
       
@@ -94,6 +100,18 @@ class SocketService {
       return chatMessage;
     } catch (error) {
       console.error('Error processing message:', error);
+      
+      // Handle agent-related errors
+      if (error.message.includes('Agent not found') || error.message.includes('OpenAI assistant ID')) {
+        console.error('Agent Error:', error.message);
+        return {
+          status: "error",
+          message: "Selected agent is not available or not properly configured.",
+          userId: data.userId,
+          agentId: data.agentId,
+          serverTime: new Date().toISOString()
+        };
+      }
       
       // Handle specific OpenAI errors
       if (error.name === 'OpenAIError') {
@@ -138,6 +156,12 @@ class SocketService {
    */
   async findOrCreateConversation(userId, agentId) {
     try {
+      // Validate agent exists and is properly configured
+      const isValidAgent = await agentMappingService.validateAgent(agentId);
+      if (!isValidAgent) {
+        throw new Error(`Invalid agent ID: ${agentId}`);
+      }
+
       // Try to find existing active conversation
       let conversation = await Conversation.findOne({
         user_id: userId,
