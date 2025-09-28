@@ -96,10 +96,11 @@ class SocketManager {
       }
 
       //Get AssisstantDetails
-      const assistantIdMap = JSON.parse(process.env.ASSISTANTID_ID_MAP);
-      const assistantId = assistantIdMap[data.agentId];
+      console.log("AgentId:", data.agentId);
+      const assistantId = process.env. process.env.ASSISTANTID_ID_MAP.get(data.agentId);
+      // Process message through service
+      console.log("Found AssistantId:", assistantId);
       data.assistantId = assistantId;
-
       const response = await socketService.processMessage(data);
       console.log("Sending response:", response);
 
