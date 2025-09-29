@@ -1,4 +1,6 @@
 const { Conversation, Message } = require('../models');
+const messageService = require('../services/message.service');
+const createError = require('http-errors');
 
 async function listChats(req, res, next) {
 	try {
@@ -19,6 +21,10 @@ async function getChat(req, res, next) {
 async function createChat(req, res, next) {
 	try {
 		const { agentId, title } = req.body;
+		
+		// Initialize message credits for this agent if not already done
+		await messageService.initializeAgentCredits(req.user.id, agentId);
+		
 		const conv = await Conversation.create({ userId: req.user.id, agentId, title });
 		return res.status(201).json({ success: true, data: conv });
 	} catch (err) { return next(err); }
@@ -30,9 +36,36 @@ async function postMessage(req, res, next) {
 		const conversationId = req.params.id;
 		const conv = await Conversation.findOne({ _id: conversationId, userId: req.user.id }).exec();
 		if (!conv) return res.status(404).json({ message: 'Not found' });
+
+		// Check and deduct message credits only for user messages
+		if (sender === 'user' || !sender) {
+			const creditCheck = await messageService.checkUserMessageCredits(req.user.id, conv.agentId);
+			if (!creditCheck.hasCredits) {
+				return res.status(402).json({ 
+					success: false, 
+					message: 'Insufficient message credits. Please purchase more messages.',
+					remaining: creditCheck.remaining
+				});
+			}
+
+			// Deduct message credit
+			await messageService.deductMessageCredit(req.user.id, conv.agentId);
+		}
+
 		const msg = await Message.create({ conversationId, sender: sender || 'user', senderId: req.user.id, content });
 		await Conversation.findByIdAndUpdate(conversationId, { lastMessage: content, $inc: { unreadCount: 0 } }).exec();
-		return res.status(201).json({ success: true, data: msg });
+		
+		// Get updated credit info
+		const updatedCredits = await messageService.checkUserMessageCredits(req.user.id, conv.agentId);
+		
+		return res.status(201).json({ 
+			success: true, 
+			data: msg,
+			credits: {
+				remaining: updatedCredits.remaining,
+				hasCredits: updatedCredits.hasCredits
+			}
+		});
 	} catch (err) { return next(err); }
 }
 

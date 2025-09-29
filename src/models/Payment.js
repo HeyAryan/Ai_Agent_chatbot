@@ -9,7 +9,12 @@ const paymentSchema = new mongoose.Schema({
 	planId: { 
 		type: mongoose.Schema.Types.ObjectId, 
 		ref: 'Plan', 
-		required: true 
+		required: false 
+	},
+	messagePackId: { 
+		type: mongoose.Schema.Types.ObjectId, 
+		ref: 'MessagePack', 
+		required: false 
 	},
 	razorpayOrderId: { 
 		type: String, 
