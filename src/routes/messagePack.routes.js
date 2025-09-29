@@ -8,7 +8,7 @@ router.get('/', messagePackController.getMessagePacks);
 router.get('/:packId', messagePackController.getMessagePack);
 
 // Protected routes (require authentication)
-router.use(auth);
+router.use(auth.auth);
 
 // User routes
 router.post('/:packId/purchase', messagePackController.purchaseMessagePack);
@@ -17,7 +17,7 @@ router.get('/credits/:agentId', messagePackController.getUserMessageCredits);
 router.get('/credits', messagePackController.getAllUserMessageCredits);
 
 // Admin routes (require admin role)
-router.post('/', auth, (req, res, next) => {
+router.post('/', auth.auth, (req, res, next) => {
 	if (req.user.role !== 'admin') {
 		return res.status(403).json({
 			success: false,
@@ -27,7 +27,7 @@ router.post('/', auth, (req, res, next) => {
 	next();
 }, messagePackController.createMessagePack);
 
-router.put('/:packId', auth, (req, res, next) => {
+router.put('/:packId', auth.auth, (req, res, next) => {
 	if (req.user.role !== 'admin') {
 		return res.status(403).json({
 			success: false,
@@ -37,7 +37,7 @@ router.put('/:packId', auth, (req, res, next) => {
 	next();
 }, messagePackController.updateMessagePack);
 
-router.delete('/:packId', auth, (req, res, next) => {
+router.delete('/:packId', auth.auth, (req, res, next) => {
 	if (req.user.role !== 'admin') {
 		return res.status(403).json({
 			success: false,
