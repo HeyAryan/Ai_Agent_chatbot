@@ -65,6 +65,19 @@ class SocketManager {
         ChatEvents.handleLeaveConversation(socket, data);
       });
 
+      // Conversation history and management events
+      socket.on("getConversationHistory", async (data) => {
+        await ChatEvents.handleGetConversationHistory(socket, data);
+      });
+
+      socket.on("getUserConversations", async (data) => {
+        await ChatEvents.handleGetUserConversations(socket, data);
+      });
+
+      socket.on("getConversationDetails", async (data) => {
+        await ChatEvents.handleGetConversationDetails(socket, data);
+      });
+
       // Handle typing indicators
       socket.on("typing", (data) => {
         ChatEvents.handleTyping(socket, data);

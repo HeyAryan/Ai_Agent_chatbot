@@ -298,6 +298,146 @@ class ChatEvents {
       timestamp: new Date().toISOString()
     });
   }
+
+  /**
+   * Handle getting conversation history
+   * @param {Socket} socket - Socket instance
+   * @param {Object} data - Conversation history data
+   */
+  static async handleGetConversationHistory(socket, data) {
+    const { conversationId, userId, page = 1, limit = 50 } = data;
+    
+    if (!conversationId || !userId) {
+      socket.emit('error', { message: 'Conversation ID and user ID are required' });
+      return;
+    }
+
+    try {
+      const { Message, Conversation } = require('../../models');
+      
+      // Verify conversation belongs to user
+      const conversation = await Conversation.findOne({ 
+        _id: conversationId, 
+        user_id: userId 
+      });
+      
+      if (!conversation) {
+        socket.emit('error', { message: 'Conversation not found or unauthorized' });
+        return;
+      }
+
+      // Get conversation history with pagination
+      const messages = await Message.find({ 
+        conversationId: conversationId
+      })
+        .sort({ createdAt: -1 }) // Most recent first
+        .limit(parseInt(limit))
+        .skip((parseInt(page) - 1) * parseInt(limit))
+        .lean()
+        .exec();
+
+      // Get total message count
+      const totalMessages = await Message.countDocuments({ 
+        conversationId: conversationId
+      });
+
+      // Emit conversation history
+      socket.emit('conversationHistory', {
+        conversationId,
+        messages: messages.reverse(), // Reverse to show oldest first
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: totalMessages,
+          pages: Math.ceil(totalMessages / parseInt(limit))
+        },
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('Error getting conversation history:', error);
+      socket.emit('error', { message: 'Failed to get conversation history' });
+    }
+  }
+
+  /**
+   * Handle getting user's conversations list
+   * @param {Socket} socket - Socket instance
+   * @param {Object} data - User conversations data
+   */
+  static async handleGetUserConversations(socket, data) {
+    const { userId } = data;
+    
+    if (!userId) {
+      socket.emit('error', { message: 'User ID is required' });
+      return;
+    }
+
+    try {
+      const { Conversation } = require('../../models');
+      
+      // Get user's conversations with agent details
+      const conversations = await Conversation.find({ user_id: userId })
+        .populate('agent_id', 'title description icon color')
+        .sort({ last_message_timestamp: -1 })
+        .lean()
+        .exec();
+
+      // Emit user conversations
+      socket.emit('userConversations', {
+        userId,
+        conversations,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('Error getting user conversations:', error);
+      socket.emit('error', { message: 'Failed to get user conversations' });
+    }
+  }
+
+  /**
+   * Handle getting conversation details
+   * @param {Socket} socket - Socket instance
+   * @param {Object} data - Conversation details data
+   */
+  static async handleGetConversationDetails(socket, data) {
+    const { conversationId, userId } = data;
+    
+    if (!conversationId || !userId) {
+      socket.emit('error', { message: 'Conversation ID and user ID are required' });
+      return;
+    }
+
+    try {
+      const { Conversation } = require('../../models');
+      
+      // Get conversation details with agent info
+      const conversation = await Conversation.findOne({ 
+        _id: conversationId, 
+        user_id: userId 
+      })
+        .populate('agent_id', 'title description icon color openai_assistant_id')
+        .lean()
+        .exec();
+
+      if (!conversation) {
+        socket.emit('error', { message: 'Conversation not found or unauthorized' });
+        return;
+      }
+
+      // Emit conversation details
+      socket.emit('conversationDetails', {
+        conversationId,
+        conversation,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('Error getting conversation details:', error);
+      socket.emit('error', { message: 'Failed to get conversation details' });
+    }
+  }
 }
 
 module.exports = ChatEvents;
