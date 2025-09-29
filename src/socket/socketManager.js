@@ -1,5 +1,6 @@
 const { Server } = require("socket.io");
 const socketService = require('../services/socket.service');
+const ChatEvents = require('./events/chatEvents');
 
 /**
  * Socket Manager for handling WebSocket connections and events
@@ -41,6 +42,59 @@ class SocketManager {
       // Handle incoming messages
       socket.on("message", async (data) => {
         await this.handleMessage(socket, data);
+      });
+
+      // Handle read message events
+      socket.on("markMessageAsRead", async (data) => {
+        await ChatEvents.handleMarkMessageAsRead(socket, data);
+      });
+
+      socket.on("markAllMessagesAsRead", async (data) => {
+        await ChatEvents.handleMarkAllMessagesAsRead(socket, data);
+      });
+
+      socket.on("getUnreadCount", async (data) => {
+        await ChatEvents.handleGetUnreadCount(socket, data);
+      });
+
+      socket.on("joinConversation", (data) => {
+        ChatEvents.handleJoinConversation(socket, data);
+      });
+
+      socket.on("leaveConversation", (data) => {
+        ChatEvents.handleLeaveConversation(socket, data);
+      });
+
+      // Conversation history and management events
+      socket.on("getConversationHistory", async (data) => {
+        await ChatEvents.handleGetConversationHistory(socket, data);
+      });
+
+      socket.on("getUserConversations", async (data) => {
+        await ChatEvents.handleGetUserConversations(socket, data);
+      });
+
+      socket.on("getConversationDetails", async (data) => {
+        await ChatEvents.handleGetConversationDetails(socket, data);
+      });
+
+      // Handle typing indicators
+      socket.on("typing", (data) => {
+        ChatEvents.handleTyping(socket, data);
+      });
+
+      // Handle room management
+      socket.on("joinRoom", (data) => {
+        ChatEvents.handleJoinRoom(socket, data);
+      });
+
+      socket.on("leaveRoom", (data) => {
+        ChatEvents.handleLeaveRoom(socket, data);
+      });
+
+      // Handle message reactions
+      socket.on("reaction", (data) => {
+        ChatEvents.handleReaction(socket, data);
       });
 
       // Handle disconnection
@@ -96,6 +150,8 @@ class SocketManager {
       }
 
       // Process message through service
+      // The service will handle agent validation and OpenAI assistant ID mapping
+      console.log("Processing message for agent:", data.agentId);
       const response = await socketService.processMessage(data);
       console.log("Sending response:", response);
 
