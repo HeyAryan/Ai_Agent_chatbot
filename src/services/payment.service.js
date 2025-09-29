@@ -1,7 +1,7 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const config = require('../config');
-const { Payment, Plan, User } = require('../models');
+const { Payment, Plan, User, MessagePack } = require('../models');
 const createError = require('http-errors');
 
 // Initialize Razorpay instance
@@ -228,10 +228,154 @@ async function cancelPayment(orderId) {
 	}
 }
 
+/**
+ * Create a new Razorpay order for message pack purchase
+ * @param {Object} orderData - Order details
+ * @param {string} orderData.userId - User ID
+ * @param {string} orderData.messagePackId - Message Pack ID
+ * @param {number} orderData.amount - Amount in paise
+ * @param {string} orderData.currency - Currency code
+ * @param {string} orderData.receipt - Receipt number
+ * @param {Object} orderData.notes - Additional notes
+ * @returns {Promise<Object>} Created order and payment record
+ */
+async function createMessagePackOrder(orderData) {
+	try {
+		const { userId, messagePackId, amount, currency = 'INR', receipt, notes = {} } = orderData;
+
+		// Validate message pack exists
+		const messagePack = await MessagePack.findById(messagePackId);
+		if (!messagePack) {
+			throw createError(404, 'Message pack not found');
+		}
+
+		if (!messagePack.isActive) {
+			throw createError(400, 'Message pack is not available for purchase');
+		}
+
+		// Validate user exists
+		const user = await User.findById(userId);
+		if (!user) {
+			throw createError(404, 'User not found');
+		}
+
+		// Create Razorpay order
+		const razorpayOrder = await razorpay.orders.create({
+			amount: amount, // Amount in paise
+			currency: currency,
+			receipt: receipt || `msgpack_${Date.now()}`,
+			notes: {
+				userId: userId.toString(),
+				messagePackId: messagePackId.toString(),
+				type: 'message_pack',
+				...notes
+			}
+		});
+
+		// Generate checkout URL
+		const checkoutUrl = `https://checkout.razorpay.com/v1/checkout.html?order_id=${razorpayOrder.id}&traffic_env=production`;
+
+		// Create payment record in database
+		const payment = new Payment({
+			userId: userId,
+			planId: null, // No plan for message packs
+			messagePackId: messagePackId,
+			razorpayOrderId: razorpayOrder.id,
+			amount,
+			currency,
+			receipt: razorpayOrder.receipt,
+			notes: JSON.stringify(notes),
+			status: 'pending'
+		});
+
+		await payment.save();
+
+		return {
+			order: razorpayOrder,
+			payment: payment,
+			checkoutUrl: checkoutUrl
+		};
+	} catch (error) {
+		if (error.status) throw error;
+		throw createError(500, `Failed to create message pack order: ${error.message}`);
+	}
+}
+
+/**
+ * Verify Razorpay payment signature for message pack purchase
+ * @param {string} razorpayOrderId - Razorpay order ID
+ * @param {string} razorpayPaymentId - Razorpay payment ID
+ * @param {string} razorpaySignature - Razorpay signature
+ * @returns {Promise<Object>} Verified payment data
+ */
+async function verifyMessagePackPayment(razorpayOrderId, razorpayPaymentId, razorpaySignature) {
+	try {
+		// Find payment record
+		const payment = await Payment.findOne({ razorpayOrderId });
+		if (!payment) {
+			throw createError(404, 'Payment record not found');
+		}
+
+		// Verify signature
+		const body = razorpayOrderId + '|' + razorpayPaymentId;
+		const expectedSignature = crypto
+			.createHmac('sha256', config.razorpay.keySecret)
+			.update(body.toString())
+			.digest('hex');
+
+		if (expectedSignature !== razorpaySignature) {
+			throw createError(400, 'Invalid payment signature');
+		}
+
+		// Update payment record
+		payment.razorpayPaymentId = razorpayPaymentId;
+		payment.razorpaySignature = razorpaySignature;
+		payment.status = 'completed';
+		await payment.save();
+
+		// Update user's message credits
+		const messagePack = await MessagePack.findById(payment.messagePackId);
+		let updatedUser = null;
+		
+		if (messagePack && payment.userId) {
+			// Calculate expiry date if message pack has validity
+			let expiryDate = null;
+			if (messagePack.validityDays) {
+				expiryDate = new Date();
+				expiryDate.setDate(expiryDate.getDate() + messagePack.validityDays);
+			}
+
+			// Add message pack to user's purchased packs
+			updatedUser = await User.findByIdAndUpdate(
+				payment.userId,
+				{
+					$push: {
+						purchasedMessagePacks: {
+							packId: messagePack._id,
+							quantity: 1,
+							purchaseDate: new Date(),
+							expiryDate: expiryDate,
+							used: 0
+						}
+					}
+				},
+				{ new: true }
+			);
+		}
+
+		return { payment, updatedUser };
+	} catch (error) {
+		if (error.status) throw error;
+		throw createError(500, `Message pack payment verification failed: ${error.message}`);
+	}
+}
+
 module.exports = {
 	createOrder,
 	verifyPayment,
 	getPaymentByOrderId,
 	getUserPaymentHistory,
-	cancelPayment
+	cancelPayment,
+	createMessagePackOrder,
+	verifyMessagePackPayment
 };

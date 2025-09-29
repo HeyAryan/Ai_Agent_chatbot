@@ -26,6 +26,9 @@ const config = Object.freeze({
 	razorpay: {
 		keyId: process.env.RAZORPAY_KEY_ID,
 		keySecret: process.env.RAZORPAY_KEY_SECRET
+	},
+	messages: {
+		freeMessagesPerAgent: Number(process.env.FREE_MESSAGES_PER_AGENT || 10)
 	}
 });
 
