@@ -2,7 +2,11 @@ const { Conversation, Message } = require('../models');
 
 async function listChats(req, res, next) {
 	try {
-		const items = await Conversation.find({ user_id: req.user.id }).sort({ updatedAt: -1 }).lean().exec();
+		const items = await Conversation.find({ user_id: req.user.id })
+			.populate('agent_id', 'title description icon color')
+			.sort({ last_message_timestamp: -1 })
+			.lean()
+			.exec();
 		return res.json({ success: true, data: items });
 	} catch (err) { return next(err); }
 }
@@ -94,7 +98,6 @@ async function getConversationHistory(req, res, next) {
 				messages,
 				pagination: {
 					page: parseInt(page),
-					limit: parseInt(limit),
 					total: totalMessages,
 					pages: Math.ceil(totalMessages / parseInt(limit))
 				}
@@ -105,6 +108,48 @@ async function getConversationHistory(req, res, next) {
 	}
 }
 
-module.exports = { listChats, getChat, createChat, postMessage, pinChat, deleteChat, getConversationHistory };
+async function markAsRead(req, res, next) {
+	try {
+		const { conversationId } = req.params;
+		
+		// Verify conversation belongs to user
+		const conversation = await Conversation.findOne({ 
+			_id: conversationId, 
+			user_id: req.user.id 
+		}).exec();
+		
+		if (!conversation) {
+			return res.status(404).json({ message: 'Conversation not found' });
+		}
+		
+		// Reset unread count to 0
+		await Conversation.findByIdAndUpdate(conversationId, {
+			unread_messages_count: 0,
+			updatedAt: new Date()
+		});
+		
+		return res.json({
+			success: true,
+			message: 'Conversation marked as read',
+			data: {
+				conversationId,
+				unread_messages_count: 0
+			}
+		});
+	} catch (err) { 
+		return next(err); 
+	}
+}
+
+
+module.exports = { 
+	listChats, 
+	getChat, 
+	createChat, 
+	postMessage, 
+	pinChat, 
+	deleteChat, 
+	getConversationHistory
+};
 
 
