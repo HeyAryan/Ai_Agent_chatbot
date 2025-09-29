@@ -1,6 +1,14 @@
 const express = require('express');
 const { auth } = require('../middleware/auth');
-const { listChats, getChat, createChat, postMessage, pinChat, deleteChat, getConversationHistory } = require('../controllers/chats.controller');
+const { 
+	listChats, 
+	getChat, 
+	createChat, 
+	postMessage, 
+	pinChat, 
+	deleteChat, 
+	getConversationHistory
+} = require('../controllers/chats.controller');
 
 const router = express.Router();
 

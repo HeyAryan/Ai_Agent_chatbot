@@ -198,6 +198,8 @@ class SocketService {
    */
   async saveMessages(conversationId, userId, agentId, userMessage, aiResponse) {
     try {
+      const now = new Date();
+      
       // Save user message
       const userMsg = await Message.create({
         conversationId: conversationId,
@@ -205,7 +207,18 @@ class SocketService {
         senderId: userId,
         senderRef: 'User',
         content: userMessage,
-        status: 'delivered'
+        status: 'delivered' // User messages are delivered immediately
+      });
+
+      // Update conversation with user message details
+      await Conversation.findByIdAndUpdate(conversationId, {
+        $set: {
+          last_message_text: userMessage,
+          last_message_send_by: 'User',
+          last_message_timestamp: now,
+          updatedAt: now
+        }
+        // No $inc for user messages - unread count only increases for system messages
       });
 
       // Save AI response
@@ -215,18 +228,80 @@ class SocketService {
         senderId: agentId,
         senderRef: 'Agent',
         content: aiResponse,
-        status: 'sent'
+        status: 'sent' // AI messages start as 'sent' and need to be marked as 'read'
       });
 
-      // Update conversation's last activity
+      // Update conversation with AI response details
       await Conversation.findByIdAndUpdate(conversationId, {
-        updatedAt: new Date()
+        $set: {
+          last_message_text: aiResponse,
+          last_message_send_by: 'System',
+          last_message_timestamp: now,
+          updatedAt: now
+        },
+        $inc: { unread_messages_count: 1 } // Increment unread count
       });
 
       console.log('Messages saved:', { userMsg: userMsg._id, aiMsg: aiMsg._id });
+      console.log('Conversation updated with new message details');
       return { userMsg, aiMsg };
     } catch (error) {
       console.error('Error saving messages:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update conversation with single message (for cases where only user message is sent)
+   * @param {string} conversationId - Conversation ID
+   * @param {string} userId - User ID
+   * @param {string} userMessage - User's message
+   */
+  async updateConversationWithUserMessage(conversationId, userId, userMessage) {
+    try {
+      const now = new Date();
+      
+      // Update conversation with user message details
+      await Conversation.findByIdAndUpdate(conversationId, {
+        $set: {
+          last_message_text: userMessage,
+          last_message_send_by: 'User',
+          last_message_timestamp: now,
+          updatedAt: now
+        }
+        // No $inc for user messages - unread count only increases for system messages
+      });
+
+      console.log('Conversation updated with user message');
+    } catch (error) {
+      console.error('Error updating conversation with user message:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update conversation with AI response
+   * @param {string} conversationId - Conversation ID
+   * @param {string} aiResponse - AI's response
+   */
+  async updateConversationWithAIResponse(conversationId, aiResponse) {
+    try {
+      const now = new Date();
+      
+      // Update conversation with AI response details
+      await Conversation.findByIdAndUpdate(conversationId, {
+        $set: {
+          last_message_text: aiResponse,
+          last_message_send_by: 'System',
+          last_message_timestamp: now,
+          updatedAt: now
+        },
+        $inc: { unread_messages_count: 1 } // Increment unread count
+      });
+
+      console.log('Conversation updated with AI response');
+    } catch (error) {
+      console.error('Error updating conversation with AI response:', error);
       throw error;
     }
   }

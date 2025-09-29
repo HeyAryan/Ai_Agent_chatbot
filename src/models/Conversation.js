@@ -13,7 +13,17 @@ const conversationSchema = new mongoose.Schema(
       default: 'active' 
     },
 
-    pinned: { type: Boolean, default: false }
+    pinned: { type: Boolean, default: false },
+
+    // New conversation tracking fields
+    last_message_text: { type: String, default: '' },
+    last_message_send_by: { 
+      type: String, 
+      enum: ['User', 'System'], 
+      default: 'User' 
+    },
+    unread_messages_count: { type: Number, default: 0 },
+    last_message_timestamp: { type: Date, default: Date.now }
   },
   { timestamps: true } // adds createdAt and updatedAt automatically
 );
