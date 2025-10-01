@@ -2,9 +2,15 @@
   <!-- Header -->
   <div class="chat-header">
     <h1>Dual AI Agent Chat</h1>
-    <div class="connection-status">
-      <span class="status-indicator" [class.connected]="isConnected" [class.disconnected]="!isConnected"></span>
-      <span>{{ isConnected ? 'Connected' : 'Disconnected' }}</span>
+    <div class="header-controls">
+      <button class="global-refresh-btn" (click)="refreshAllConversationHistory()" 
+              [disabled]="!isConnected">
+        🔄 Refresh All History
+      </button>
+      <div class="connection-status">
+        <span class="status-indicator" [class.connected]="isConnected" [class.disconnected]="!isConnected"></span>
+        <span>{{ isConnected ? 'Connected' : 'Disconnected' }}</span>
+      </div>
     </div>
   </div>
 
@@ -19,11 +25,22 @@
     <!-- Astrologer Chat -->
     <div class="chat-panel astrologer-panel">
       <div class="panel-header">
-        <h2>🔮 Astrologer</h2>
+        <h2>🔮 Astrologer 
+          <span *ngIf="unreadCounts.astrologer > 0" class="unread-badge">{{ unreadCounts.astrologer }}</span>
+        </h2>
         <div class="panel-controls">
           <div class="thread-info" *ngIf="threadIds.astrologer">
             <small>Thread: {{ threadIds.astrologer.substring(0, 8) }}...</small>
           </div>
+          <button class="mark-read-btn" (click)="markAllMessagesAsRead('astrologer')" 
+                  [disabled]="unreadCounts.astrologer === 0" 
+                  *ngIf="unreadCounts.astrologer > 0">
+            Mark All Read
+          </button>
+          <button class="refresh-btn" (click)="refreshConversationHistory('astrologer')" 
+                  [disabled]="!conversationIds.astrologer">
+            Refresh History
+          </button>
           <button class="clear-btn" (click)="clearChat('astrologer')" [disabled]="astrologerChat.history.length === 0">
             Clear Chat
           </button>
@@ -31,10 +48,18 @@
       </div>
       
       <div class="chat-messages" #astrologerMessages>
-        <div *ngFor="let msg of astrologerChat.history" class="message" [class.user-message]="msg.from === 'me'" [class.server-message]="msg.from === 'server'">
+        <div *ngFor="let msg of astrologerChat.history" 
+             class="message" 
+             [class.user-message]="msg.from === 'me'" 
+             [class.server-message]="msg.from === 'server'"
+             [class.unread]="msg.from === 'server' && msg.status !== 'read'"
+             (mouseenter)="onMessageView(msg, 'astrologer')">
           <div class="message-header">
             <span class="sender">{{ msg.from === 'me' ? 'You' : getAgentDisplayName(msg.agentId) }}</span>
             <span class="timestamp">{{ msg.timestamp | date:'short' }}</span>
+            <span *ngIf="msg.status" class="message-status" [title]="getMessageStatusText(msg.status)">
+              {{ getMessageStatusIcon(msg.status) }}
+            </span>
           </div>
           
           <!-- Structured response display -->
@@ -92,11 +117,22 @@
     <!-- Content Writer Chat -->
     <div class="chat-panel content-writer-panel">
       <div class="panel-header">
-        <h2>✍️ Content Writer</h2>
+        <h2>✍️ Content Writer 
+          <span *ngIf="unreadCounts.contentWriter > 0" class="unread-badge">{{ unreadCounts.contentWriter }}</span>
+        </h2>
         <div class="panel-controls">
           <div class="thread-info" *ngIf="threadIds.contentWriter">
             <small>Thread: {{ threadIds.contentWriter.substring(0, 8) }}...</small>
           </div>
+          <button class="mark-read-btn" (click)="markAllMessagesAsRead('contentWriter')" 
+                  [disabled]="unreadCounts.contentWriter === 0" 
+                  *ngIf="unreadCounts.contentWriter > 0">
+            Mark All Read
+          </button>
+          <button class="refresh-btn" (click)="refreshConversationHistory('contentWriter')" 
+                  [disabled]="!conversationIds.contentWriter">
+            Refresh History
+          </button>
           <button class="clear-btn" (click)="clearChat('contentWriter')" [disabled]="contentWriterChat.history.length === 0">
             Clear Chat
           </button>
@@ -104,10 +140,18 @@
       </div>
       
       <div class="chat-messages" #contentWriterMessages>
-        <div *ngFor="let msg of contentWriterChat.history" class="message" [class.user-message]="msg.from === 'me'" [class.server-message]="msg.from === 'server'">
+        <div *ngFor="let msg of contentWriterChat.history" 
+             class="message" 
+             [class.user-message]="msg.from === 'me'" 
+             [class.server-message]="msg.from === 'server'"
+             [class.unread]="msg.from === 'server' && msg.status !== 'read'"
+             (mouseenter)="onMessageView(msg, 'contentWriter')">
           <div class="message-header">
             <span class="sender">{{ msg.from === 'me' ? 'You' : getAgentDisplayName(msg.agentId) }}</span>
             <span class="timestamp">{{ msg.timestamp | date:'short' }}</span>
+            <span *ngIf="msg.status" class="message-status" [title]="getMessageStatusText(msg.status)">
+              {{ getMessageStatusIcon(msg.status) }}
+            </span>
           </div>
           
           <!-- Structured response display -->
