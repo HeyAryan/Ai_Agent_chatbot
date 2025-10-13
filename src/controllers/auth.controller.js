@@ -104,7 +104,8 @@ async function getUserDetailsFromSession(req, res, next) {
 				membershipPlan: user.membershipPlan,
 				bio: user.bio,
 				createdAt: user.createdAt,
-				updatedAt: user.updatedAt
+				updatedAt: user.updatedAt,
+				planExpiryDate: user.planExpiryDate
 			};
 
 			console.log(`[AUTH] [${requestId}] Returning user details successfully`, {
