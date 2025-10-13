@@ -1,0 +1,209 @@
+<div class="dual-chat-container">
+  <!-- Header -->
+  <div class="chat-header">
+    <h1>Dual AI Agent Chat</h1>
+    <div class="header-controls">
+      <button class="global-refresh-btn" (click)="refreshAllConversationHistory()" 
+              [disabled]="!isConnected">
+        🔄 Refresh All History
+      </button>
+      <div class="connection-status">
+        <span class="status-indicator" [class.connected]="isConnected" [class.disconnected]="!isConnected"></span>
+        <span>{{ isConnected ? 'Connected' : 'Disconnected' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Display -->
+  <div *ngIf="error" class="error-message">
+    <h3>Error:</h3>
+    <p>{{ error }}</p>
+  </div>
+
+  <!-- Dual Chat Interface -->
+  <div class="chat-grid">
+    <!-- Astrologer Chat -->
+    <div class="chat-panel astrologer-panel">
+      <div class="panel-header">
+        <h2>🔮 Astrologer 
+          <span *ngIf="unreadCounts.astrologer > 0" class="unread-badge">{{ unreadCounts.astrologer }}</span>
+        </h2>
+        <div class="panel-controls">
+          <div class="thread-info" *ngIf="threadIds.astrologer">
+            <small>Thread: {{ threadIds.astrologer.substring(0, 8) }}...</small>
+          </div>
+          <button class="mark-read-btn" (click)="markAllMessagesAsRead('astrologer')" 
+                  [disabled]="unreadCounts.astrologer === 0" 
+                  *ngIf="unreadCounts.astrologer > 0">
+            Mark All Read
+          </button>
+          <button class="refresh-btn" (click)="refreshConversationHistory('astrologer')" 
+                  [disabled]="!conversationIds.astrologer">
+            Refresh History
+          </button>
+          <button class="clear-btn" (click)="clearChat('astrologer')" [disabled]="astrologerChat.history.length === 0">
+            Clear Chat
+          </button>
+        </div>
+      </div>
+      
+      <div class="chat-messages" #astrologerMessages>
+        <div *ngFor="let msg of astrologerChat.history" 
+             class="message" 
+             [class.user-message]="msg.from === 'me'" 
+             [class.server-message]="msg.from === 'server'"
+             [class.unread]="msg.from === 'server' && msg.status !== 'read'"
+             (mouseenter)="onMessageView(msg, 'astrologer')">
+          <div class="message-header">
+            <span class="sender">{{ msg.from === 'me' ? 'You' : getAgentDisplayName(msg.agentId) }}</span>
+            <span class="timestamp">{{ msg.timestamp | date:'short' }}</span>
+            <span *ngIf="msg.status" class="message-status" [title]="getMessageStatusText(msg.status)">
+              {{ getMessageStatusIcon(msg.status) }}
+            </span>
+          </div>
+          
+          <!-- Structured response display -->
+          <div *ngIf="msg.structuredResponse" class="structured-response">
+            <div class="answer-section">
+              <p class="answer-text">{{ msg.structuredResponse.answer }}</p>
+            </div>
+            <div *ngIf="msg.structuredResponse.suggestions && msg.structuredResponse.suggestions.length > 0" class="suggestions-section">
+              <p class="suggestions-label">Suggested questions:</p>
+              <div class="suggestions-container">
+                <button 
+                  *ngFor="let suggestion of msg.structuredResponse.suggestions" 
+                  class="suggestion-pill"
+                  (click)="sendSuggestion(suggestion, 'astrologer')">
+                  {{ suggestion }}
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Regular message display -->
+          <div *ngIf="!msg.structuredResponse" class="regular-message">
+            <pre *ngIf="msg.from === 'server'">{{ msg.payload | json }}</pre>
+            <span *ngIf="msg.from === 'me'">{{ msg.payload.message }}</span>
+          </div>
+        </div>
+        
+        <!-- Loading indicator -->
+        <div *ngIf="astrologerChat.isLoading" class="loading-message">
+          <div class="typing-indicator">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <span>Astrologer is typing...</span>
+        </div>
+      </div>
+      
+      <div class="chat-input">
+        <input 
+          type="text" 
+          placeholder="Ask the astrologer..." 
+          [(ngModel)]="astrologerChat.input" 
+          (keyup.enter)="sendMessage('astrologer')"
+          [disabled]="!isConnected" />
+        <button 
+          class="send-btn" 
+          (click)="sendMessage('astrologer')" 
+          [disabled]="!isConnected || !astrologerChat.input.trim() || astrologerChat.isLoading">
+          Send
+        </button>
+      </div>
+    </div>
+
+    <!-- Content Writer Chat -->
+    <div class="chat-panel content-writer-panel">
+      <div class="panel-header">
+        <h2>✍️ Content Writer 
+          <span *ngIf="unreadCounts.contentWriter > 0" class="unread-badge">{{ unreadCounts.contentWriter }}</span>
+        </h2>
+        <div class="panel-controls">
+          <div class="thread-info" *ngIf="threadIds.contentWriter">
+            <small>Thread: {{ threadIds.contentWriter.substring(0, 8) }}...</small>
+          </div>
+          <button class="mark-read-btn" (click)="markAllMessagesAsRead('contentWriter')" 
+                  [disabled]="unreadCounts.contentWriter === 0" 
+                  *ngIf="unreadCounts.contentWriter > 0">
+            Mark All Read
+          </button>
+          <button class="refresh-btn" (click)="refreshConversationHistory('contentWriter')" 
+                  [disabled]="!conversationIds.contentWriter">
+            Refresh History
+          </button>
+          <button class="clear-btn" (click)="clearChat('contentWriter')" [disabled]="contentWriterChat.history.length === 0">
+            Clear Chat
+          </button>
+        </div>
+      </div>
+      
+      <div class="chat-messages" #contentWriterMessages>
+        <div *ngFor="let msg of contentWriterChat.history" 
+             class="message" 
+             [class.user-message]="msg.from === 'me'" 
+             [class.server-message]="msg.from === 'server'"
+             [class.unread]="msg.from === 'server' && msg.status !== 'read'"
+             (mouseenter)="onMessageView(msg, 'contentWriter')">
+          <div class="message-header">
+            <span class="sender">{{ msg.from === 'me' ? 'You' : getAgentDisplayName(msg.agentId) }}</span>
+            <span class="timestamp">{{ msg.timestamp | date:'short' }}</span>
+            <span *ngIf="msg.status" class="message-status" [title]="getMessageStatusText(msg.status)">
+              {{ getMessageStatusIcon(msg.status) }}
+            </span>
+          </div>
+          
+          <!-- Structured response display -->
+          <div *ngIf="msg.structuredResponse" class="structured-response">
+            <div class="answer-section">
+              <p class="answer-text">{{ msg.structuredResponse.answer }}</p>
+            </div>
+            <div *ngIf="msg.structuredResponse.suggestions && msg.structuredResponse.suggestions.length > 0" class="suggestions-section">
+              <p class="suggestions-label">Suggested questions:</p>
+              <div class="suggestions-container">
+                <button 
+                  *ngFor="let suggestion of msg.structuredResponse.suggestions" 
+                  class="suggestion-pill"
+                  (click)="sendSuggestion(suggestion, 'contentWriter')">
+                  {{ suggestion }}
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Regular message display -->
+          <div *ngIf="!msg.structuredResponse" class="regular-message">
+            <pre *ngIf="msg.from === 'server'">{{ msg.payload | json }}</pre>
+            <span *ngIf="msg.from === 'me'">{{ msg.payload.message }}</span>
+          </div>
+        </div>
+        
+        <!-- Loading indicator -->
+        <div *ngIf="contentWriterChat.isLoading" class="loading-message">
+          <div class="typing-indicator">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <span>Content Writer is typing...</span>
+        </div>
+      </div>
+      
+      <div class="chat-input">
+        <input 
+          type="text" 
+          placeholder="Ask the content writer..." 
+          [(ngModel)]="contentWriterChat.input" 
+          (keyup.enter)="sendMessage('contentWriter')"
+          [disabled]="!isConnected" />
+        <button 
+          class="send-btn" 
+          (click)="sendMessage('contentWriter')" 
+          [disabled]="!isConnected || !contentWriterChat.input.trim() || contentWriterChat.isLoading">
+          Send
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
