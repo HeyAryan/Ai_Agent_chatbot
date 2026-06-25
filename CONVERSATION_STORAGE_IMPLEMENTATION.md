@@ -348,3 +348,4 @@ DEBUG=chatbot:*
 ## 📞 Support
 
 For issues or questions regarding the conversation storage implementation, please refer to the main application documentation or contact the development team.
+

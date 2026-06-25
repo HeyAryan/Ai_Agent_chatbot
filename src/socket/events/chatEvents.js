@@ -367,7 +367,6 @@ class ChatEvents {
    */
   static async handleGetUserConversations(socket, data) {
     const { userId } = data;
-    
     if (!userId) {
       socket.emit('error', { message: 'User ID is required' });
       return;
